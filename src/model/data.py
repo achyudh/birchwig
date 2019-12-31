@@ -71,6 +71,7 @@ class DataGenerator(object):
 
     def load_batch(self):
         test_batch, token_type_ids_batch, mask_batch, label_batch, qid_batch, docid_batch = [], [], [], [], [], []
+        a_batch, b_batch, docno_batch = [], [], []
         while True:
             if not self.start and self.epoch_end():
                 self.start = True
@@ -83,6 +84,9 @@ class DataGenerator(object):
                 docid = int(docid)
                 qid_batch.append(qid)
                 docid_batch.append(docid)
+                docno_batch.append(docno)
+                a_batch.append(a)
+                b_batch.append(b)
             else:
                 label, a, b, ID = instance
                 ls = ID.split()
@@ -106,6 +110,6 @@ class DataGenerator(object):
                 label_tensor = torch.tensor(label_batch, device=self.device)
                 qid_tensor = torch.tensor(qid_batch, device=self.device)
                 docid_tensor = torch.tensor(docid_batch, device=self.device)
-                return (tokens_tensor, segments_tensor, mask_tensor, label_tensor, qid_tensor, docid_tensor)
+                return tokens_tensor, segments_tensor, mask_tensor, label_tensor, qid_tensor, docid_tensor, a_batch, b_batch, docno_batch
 
         return None

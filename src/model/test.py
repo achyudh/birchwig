@@ -42,7 +42,7 @@ def test(args, split='test', model=None, test_dataset=None):
         batch = test_dataset.load_batch()
         if batch is None:
             break
-        tokens_tensor, segments_tensor, mask_tensor, label_tensor, qid_tensor, docid_tensor = batch
+        tokens_tensor, segments_tensor, mask_tensor, label_tensor, qid_tensor, docid_tensor, a_batch, b_batch, docno_batch = batch
         predictions = model(tokens_tensor, segments_tensor, mask_tensor)
         scores = predictions.cpu().detach().numpy()
         predicted_index = list(torch.argmax(predictions, dim=-1).cpu().numpy())
@@ -57,8 +57,7 @@ def test(args, split='test', model=None, test_dataset=None):
                 docids = docid_tensor.cpu().detach().numpy()
             else:
                 docids = list(range(line_no, line_no + len(label_batch)))
-            for p, qid, docid, s, label in zip(predicted_index, qids, docids, \
-                                               scores, label_batch):
+            for p, qid, docid, s, label in zip(predicted_index, qids, docids, scores, label_batch):
                 output_file.write('{}\t{}\n'.format(line_no, p))
                 predict_file.write('{} Q0 {} {} {} bert\n'.format(qid, docid, line_no, s[1]))
                 line_no += 1
@@ -66,8 +65,9 @@ def test(args, split='test', model=None, test_dataset=None):
             qids = qid_tensor.cpu().detach().numpy()
             docids = docid_tensor.cpu().detach().numpy()
             assert len(qids) == len(predicted_index)
-            for p, l, s, qid, docid in zip(predicted_index, label_batch, scores, qids, docids):
-                predict_file.write('{} Q0 {} {} {} bert\n'.format(qid, docid, line_no, s[1]))
+            for label, score, qid, docid, a, b, docno in zip(label_tensor, scores, qids, docids, a_batch, b_batch, docno_batch):
+                output_file.write('%d\t%s\t%d\t%s\t%s\t%s\n' % (label, score, qid, docno, a, b))
+                predict_file.write('{} Q0 {} {} {} bert\n'.format(qid, docid, line_no, score[1]))
                 line_no += 1
         predict_file.flush()
 
@@ -83,7 +83,7 @@ def test(args, split='test', model=None, test_dataset=None):
     model.train()
 
     if split != 'test':
-        map, p20, ndcg20 = evaluate(args.trec_eval_path, predictions_file=args.predict_path, \
+        map, p20, ndcg20 = evaluate(args.trec_eval_path, predictions_file=args.predict_path,
                                 qrels_file=os.path.join(args.data_path, 'qrels', 'qrels.{}.txt'.format(args.collection)))
         return [['map', 'p20', 'ndcg20'], [map, p20, ndcg20]]
     else:
